@@ -12,6 +12,8 @@
 param(
     [string]$Database = "genealogy",
     [string]$User = "genealogy_app",
+    [string]$DbHost = "127.0.0.1",
+    [string]$Password = "genealogy_password",
     [int]$RootMemberId = 1,
     [string]$Output = "data\exports\branch.csv"
 )
@@ -21,6 +23,32 @@ $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $OutputPath = Join-Path $Root $Output
 $OutputDir = Split-Path $OutputPath
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+
+function Resolve-Psql {
+    $Command = Get-Command psql -ErrorAction SilentlyContinue
+    if ($Command) {
+        return $Command.Source
+    }
+
+    $Candidates = @(
+        "D:\PostgreSQL\16\bin\psql.exe",
+        "C:\Program Files\PostgreSQL\16\bin\psql.exe",
+        "C:\Program Files\PostgreSQL\17\bin\psql.exe"
+    )
+    foreach ($Candidate in $Candidates) {
+        if (Test-Path $Candidate) {
+            return $Candidate
+        }
+    }
+
+    throw "psql.exe not found. Install PostgreSQL or add PostgreSQL bin directory to PATH."
+}
+
+$Psql = Resolve-Psql
+$PreviousPgPassword = $env:PGPASSWORD
+if ($Password) {
+    $env:PGPASSWORD = $Password
+}
 
 $ExportSql = New-TemporaryFile
 try {
@@ -40,8 +68,9 @@ ORDER BY members.generation_index, members.id
 ) TO '$OutputPath' WITH (FORMAT csv, HEADER true)
 "@
     Set-Content -Path $ExportSql -Value $Query -Encoding UTF8
-    psql -U $User -d $Database -f $ExportSql
+    & $Psql -h $DbHost -U $User -d $Database -f $ExportSql
 }
 finally {
     Remove-Item -LiteralPath $ExportSql -Force
+    $env:PGPASSWORD = $PreviousPgPassword
 }

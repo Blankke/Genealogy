@@ -12,6 +12,8 @@
 param(
     [string]$Database = "genealogy",
     [string]$User = "genealogy_app",
+    [string]$DbHost = "127.0.0.1",
+    [string]$Password = "genealogy_password",
     [string]$DataDir = "data\generated",
     [switch]$Reset
 )
@@ -20,11 +22,37 @@ $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $ResolvedDataDir = Resolve-Path (Join-Path $Root $DataDir)
 
-psql -U $User -d $Database -f (Join-Path $Root "database\schema.sql")
-psql -U $User -d $Database -f (Join-Path $Root "database\indexes.sql")
+function Resolve-Psql {
+    $Command = Get-Command psql -ErrorAction SilentlyContinue
+    if ($Command) {
+        return $Command.Source
+    }
+
+    $Candidates = @(
+        "D:\PostgreSQL\16\bin\psql.exe",
+        "C:\Program Files\PostgreSQL\16\bin\psql.exe",
+        "C:\Program Files\PostgreSQL\17\bin\psql.exe"
+    )
+    foreach ($Candidate in $Candidates) {
+        if (Test-Path $Candidate) {
+            return $Candidate
+        }
+    }
+
+    throw "psql.exe not found. Install PostgreSQL or add PostgreSQL bin directory to PATH."
+}
+
+$Psql = Resolve-Psql
+$PreviousPgPassword = $env:PGPASSWORD
+if ($Password) {
+    $env:PGPASSWORD = $Password
+}
 
 $ImportSql = New-TemporaryFile
 try {
+    & $Psql -h $DbHost -U $User -d $Database -f (Join-Path $Root "database\schema.sql")
+    & $Psql -h $DbHost -U $User -d $Database -f (Join-Path $Root "database\indexes.sql")
+
     $Lines = @()
     if ($Reset) {
         $Lines += "TRUNCATE marriages, parent_child_relations, members, genealogy_collaborators, genealogies, users RESTART IDENTITY CASCADE;"
@@ -39,8 +67,9 @@ try {
     $Lines += "SELECT setval(pg_get_serial_sequence('genealogies','id'), COALESCE((SELECT MAX(id) FROM genealogies), 1));"
     $Lines += "SELECT setval(pg_get_serial_sequence('members','id'), COALESCE((SELECT MAX(id) FROM members), 1));"
     Set-Content -Path $ImportSql -Value $Lines -Encoding UTF8
-    psql -U $User -d $Database -f $ImportSql
+    & $Psql -h $DbHost -U $User -d $Database -f $ImportSql
 }
 finally {
     Remove-Item -LiteralPath $ImportSql -Force
+    $env:PGPASSWORD = $PreviousPgPassword
 }

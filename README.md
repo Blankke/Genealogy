@@ -79,6 +79,8 @@ python scripts/validate_generated_data.py --input data/generated
 - 每个族谱 30 代
 - 无孤立成员
 
+`-Reset` 会清空当前数据库中的业务数据并重新导入演示数据。新注册账号默认没有族谱，所以注册后看不到数据是正常的；导入演示数据后，请使用下面的演示账号查看已有族谱和成员。
+
 演示账号：
 
 - 邮箱：`user01@example.com`
