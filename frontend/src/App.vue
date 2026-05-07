@@ -10,12 +10,14 @@ import {
   ShieldCheck,
   UserPlus,
   Users,
+  Database,
 } from "lucide-vue-next";
 import { computed, reactive, ref } from "vue";
 
 import { ApiError, createApiClient } from "./api";
 import TreeNodeView from "./components/TreeNodeView.vue";
 import type {
+  AdminDashboardRead,
   AncestorRead,
   DashboardRead,
   FamilyRead,
@@ -26,7 +28,7 @@ import type {
   UserRead,
 } from "./types";
 
-type TabKey = "dashboard" | "members" | "tree" | "ancestors" | "relation";
+type TabKey = "admin" | "dashboard" | "members" | "tree" | "ancestors" | "relation";
 type AuthMode = "login" | "register";
 
 const apiBaseUrl = ref(localStorage.getItem("apiBaseUrl") || "http://localhost:8000");
@@ -39,6 +41,7 @@ const message = ref("");
 const user = ref<UserRead | null>(null);
 const genealogies = ref<GenealogyRead[]>([]);
 const selectedGenealogyId = ref<number | null>(null);
+const adminDashboard = ref<AdminDashboardRead | null>(null);
 const dashboard = ref<DashboardRead | null>(null);
 const members = ref<MemberRead[]>([]);
 const family = ref<FamilyRead | null>(null);
@@ -104,6 +107,8 @@ const tabs = [
   { key: "relation", label: "亲缘", icon: HeartHandshake },
 ] as const;
 
+const adminTab = { key: "admin", label: "系统总览", icon: Database } as const;
+
 const api = createApiClient({
   getBaseUrl: () => apiBaseUrl.value,
   getToken: () => token.value,
@@ -114,6 +119,7 @@ const selectedGenealogy = computed(() =>
 );
 
 const selectedGenealogyReady = computed(() => selectedGenealogyId.value !== null);
+const visibleTabs = computed(() => (user.value?.is_admin ? [adminTab, ...tabs] : tabs));
 
 function formatGender(gender: string) {
   return { male: "男", female: "女", unknown: "未知" }[gender] ?? gender;
@@ -200,6 +206,10 @@ async function refreshGenealogies() {
 }
 
 async function refreshCurrentView() {
+  if (activeTab.value === "admin") {
+    adminDashboard.value = await api.adminDashboard();
+    return;
+  }
   if (!selectedGenealogyId.value) {
     return;
   }
@@ -411,7 +421,7 @@ boot();
         </label>
         <nav class="tabs">
           <button
-            v-for="tab in tabs"
+            v-for="tab in visibleTabs"
             :key="tab.key"
             class="tab-button"
             :class="{ 'tab-button-active': activeTab === tab.key }"
@@ -444,6 +454,67 @@ boot();
         </header>
 
         <p v-if="message" class="message">{{ message }}</p>
+
+        <section v-if="activeTab === 'admin'" class="view-stack">
+          <div class="stats-grid">
+            <article class="stat-card">
+              <span>系统用户</span>
+              <strong>{{ adminDashboard?.total_users ?? 0 }}</strong>
+            </article>
+            <article class="stat-card">
+              <span>族谱总数</span>
+              <strong>{{ adminDashboard?.total_genealogies ?? 0 }}</strong>
+            </article>
+            <article class="stat-card">
+              <span>系统成员</span>
+              <strong>{{ adminDashboard?.total_members ?? 0 }}</strong>
+            </article>
+            <article class="stat-card">
+              <span>亲子关系</span>
+              <strong>{{ adminDashboard?.total_parent_child_relations ?? 0 }}</strong>
+            </article>
+          </div>
+          <div class="stats-grid">
+            <article class="stat-card">
+              <span>男性成员</span>
+              <strong>{{ adminDashboard?.male_count ?? 0 }}</strong>
+            </article>
+            <article class="stat-card">
+              <span>女性成员</span>
+              <strong>{{ adminDashboard?.female_count ?? 0 }}</strong>
+            </article>
+            <article class="stat-card">
+              <span>未知性别</span>
+              <strong>{{ adminDashboard?.unknown_count ?? 0 }}</strong>
+            </article>
+            <article class="stat-card">
+              <span>婚姻关系</span>
+              <strong>{{ adminDashboard?.total_marriages ?? 0 }}</strong>
+            </article>
+          </div>
+          <div class="panel table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>谱名</th>
+                  <th>姓氏</th>
+                  <th>创建用户</th>
+                  <th>修谱时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="genealogy in genealogies" :key="genealogy.id">
+                  <td>{{ genealogy.id }}</td>
+                  <td>{{ genealogy.name }}</td>
+                  <td>{{ genealogy.surname }}</td>
+                  <td>{{ genealogy.owner_user_id }}</td>
+                  <td>{{ genealogy.revision_time || "-" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <section class="panel">
           <form class="form-grid" @submit.prevent="createGenealogy">

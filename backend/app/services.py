@@ -21,6 +21,8 @@ def assert_genealogy_access(
     owner_only: bool = False,
 ) -> Genealogy:
     genealogy = get_genealogy_or_404(db, genealogy_id)
+    if user.is_admin:
+        return genealogy
     if genealogy.owner_user_id == user.id:
         return genealogy
     if owner_only:
@@ -42,6 +44,8 @@ def assert_genealogy_access(
 
 
 def accessible_genealogies_query(user: User):
+    if user.is_admin:
+        return select(Genealogy)
     return select(Genealogy).where(
         or_(
             Genealogy.owner_user_id == user.id,

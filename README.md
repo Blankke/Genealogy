@@ -86,6 +86,12 @@ python scripts/validate_generated_data.py --input data/generated
 - 邮箱：`user01@example.com`
 - 密码：`Genealogy@123`
 
+管理员账号：
+
+- 邮箱：`admin@example.com`
+- 密码：`Admin@123`
+- 说明：管理员可以看到全部 10 个族谱和系统总人数，并在前端使用“系统总览”界面查看全局统计。
+
 ## 导出分支备份
 
 ```powershell

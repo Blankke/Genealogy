@@ -104,17 +104,30 @@ def generation_sizes(total_members: int, generation_count: int) -> list[int]:
 
 def generate_users() -> list[dict[str, object]]:
     password_hash = password_context.hash("Genealogy@123")
+    admin_password_hash = password_context.hash("Admin@123")
     created_at = iso_now()
-    return [
+    users = [
         {
             "id": user_id,
             "username": f"user{user_id:02d}",
             "email": f"user{user_id:02d}@example.com",
             "password_hash": password_hash,
+            "is_admin": "false",
             "created_at": created_at,
         }
         for user_id in range(1, 21)
     ]
+    users.append(
+        {
+            "id": 21,
+            "username": "admin",
+            "email": "admin@example.com",
+            "password_hash": admin_password_hash,
+            "is_admin": "true",
+            "created_at": created_at,
+        }
+    )
+    return users
 
 
 def generate_all_data(rng: random.Random) -> dict[str, list[dict[str, object]]]:
@@ -277,7 +290,7 @@ def main() -> None:
     data = generate_all_data(rng)
 
     headers = {
-        "users": ["id", "username", "email", "password_hash", "created_at"],
+        "users": ["id", "username", "email", "password_hash", "is_admin", "created_at"],
         "genealogies": [
             "id",
             "name",
@@ -330,6 +343,7 @@ def main() -> None:
     print(f"已生成数据目录：{output.resolve()}")
     print(f"成员总数：{len(data['members'])}")
     print("演示账号：user01@example.com / Genealogy@123")
+    print("管理员账号：admin@example.com / Admin@123")
 
 
 if __name__ == "__main__":

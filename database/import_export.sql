@@ -2,7 +2,7 @@
 -- Windows PowerShell 推荐通过 scripts/import_csv.ps1 调用，避免手工维护绝对路径。
 
 -- 导入顺序必须满足外键依赖：
--- \copy users(id, username, email, password_hash, created_at) FROM 'data/generated/users.csv' WITH (FORMAT csv, HEADER true)
+-- \copy users(id, username, email, password_hash, is_admin, created_at) FROM 'data/generated/users.csv' WITH (FORMAT csv, HEADER true)
 -- \copy genealogies(id, name, surname, revision_time, owner_user_id, created_at) FROM 'data/generated/genealogies.csv' WITH (FORMAT csv, HEADER true)
 -- \copy genealogy_collaborators(id, genealogy_id, user_id, role, invited_at) FROM 'data/generated/genealogy_collaborators.csv' WITH (FORMAT csv, HEADER true)
 -- \copy members(id, genealogy_id, name, gender, birth_date, death_date, generation_index, biography, created_at) FROM 'data/generated/members.csv' WITH (FORMAT csv, HEADER true)

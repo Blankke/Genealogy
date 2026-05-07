@@ -1,4 +1,5 @@
 import type {
+  AdminDashboardRead,
   AncestorRead,
   DashboardRead,
   FamilyRead,
@@ -59,6 +60,7 @@ export function createApiClient(options: ApiClientOptions) {
         body: JSON.stringify({ username, email, password }),
       }),
     me: () => request<UserRead>("/me"),
+    adminDashboard: () => request<AdminDashboardRead>("/admin/dashboard"),
     listGenealogies: () => request<GenealogyRead[]>("/genealogies"),
     createGenealogy: (payload: {
       name: string;

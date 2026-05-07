@@ -17,6 +17,7 @@ from app.models import (
     User,
 )
 from app.schemas import (
+    AdminDashboardRead,
     AncestorRead,
     DashboardRead,
     FamilyRead,
@@ -89,6 +90,34 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
 @app.get("/me", response_model=UserRead)
 def me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+
+@app.get("/admin/dashboard", response_model=AdminDashboardRead)
+def admin_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AdminDashboardRead:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="仅管理员可访问")
+
+    member_row = db.execute(
+        select(
+            func.count(Member.id).label("total_members"),
+            func.sum(case((Member.gender == "male", 1), else_=0)).label("male_count"),
+            func.sum(case((Member.gender == "female", 1), else_=0)).label("female_count"),
+            func.sum(case((Member.gender == "unknown", 1), else_=0)).label("unknown_count"),
+        )
+    ).one()
+    return AdminDashboardRead(
+        total_users=db.scalar(select(func.count(User.id))) or 0,
+        total_genealogies=db.scalar(select(func.count(Genealogy.id))) or 0,
+        total_members=int(member_row.total_members or 0),
+        male_count=int(member_row.male_count or 0),
+        female_count=int(member_row.female_count or 0),
+        unknown_count=int(member_row.unknown_count or 0),
+        total_parent_child_relations=db.scalar(select(func.count(ParentChildRelation.id))) or 0,
+        total_marriages=db.scalar(select(func.count(Marriage.id))) or 0,
+    )
 
 
 @app.get("/genealogies", response_model=list[GenealogyRead])

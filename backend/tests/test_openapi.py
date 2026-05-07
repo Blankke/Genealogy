@@ -16,6 +16,7 @@ def test_openapi_contains_core_routes() -> None:
     paths = schema["paths"]
 
     assert "/auth/register" in paths
+    assert "/admin/dashboard" in paths
     assert "/genealogies" in paths
     assert "/genealogies/{genealogy_id}/members" in paths
     assert "/members/{member_id}/ancestors" in paths

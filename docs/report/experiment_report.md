@@ -25,7 +25,7 @@ erDiagram
 
 ## 3. 关系模型与范式
 
-- `users(id, username, email, password_hash, created_at)`
+- `users(id, username, email, password_hash, is_admin, created_at)`
 - `genealogies(id, name, surname, revision_time, owner_user_id, created_at)`
 - `genealogy_collaborators(id, genealogy_id, user_id, role, invited_at)`
 - `members(id, genealogy_id, name, gender, birth_date, death_date, generation_index, biography, created_at)`

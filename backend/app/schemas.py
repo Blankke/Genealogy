@@ -25,6 +25,7 @@ class UserRead(BaseModel):
     id: int
     username: str
     email: EmailStr
+    is_admin: bool
     created_at: datetime
 
 
@@ -108,6 +109,17 @@ class DashboardRead(BaseModel):
     male_count: int
     female_count: int
     unknown_count: int
+
+
+class AdminDashboardRead(BaseModel):
+    total_users: int
+    total_genealogies: int
+    total_members: int
+    male_count: int
+    female_count: int
+    unknown_count: int
+    total_parent_child_relations: int
+    total_marriages: int
 
 
 class FamilyRead(BaseModel):

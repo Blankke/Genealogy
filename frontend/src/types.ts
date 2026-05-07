@@ -7,6 +7,7 @@ export interface UserRead {
   id: number;
   username: string;
   email: string;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -37,6 +38,17 @@ export interface DashboardRead {
   male_count: number;
   female_count: number;
   unknown_count: number;
+}
+
+export interface AdminDashboardRead {
+  total_users: number;
+  total_genealogies: number;
+  total_members: number;
+  male_count: number;
+  female_count: number;
+  unknown_count: number;
+  total_parent_child_relations: number;
+  total_marriages: number;
 }
 
 export interface FamilyRead {
