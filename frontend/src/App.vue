@@ -123,6 +123,23 @@ function normalizeDate(value: string) {
   return value || null;
 }
 
+function validateAuthForm() {
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (authMode.value === "register") {
+    const username = authForm.username.trim();
+    if (username.length < 2 || username.length > 64) {
+      return "注册失败：用户名必填，长度需要在 2 到 64 个字符之间。";
+    }
+  }
+  if (!emailPattern.test(authForm.email.trim())) {
+    return "注册失败：邮箱格式不正确，例如 test01@example.com。";
+  }
+  if (authForm.password.length < 6 || authForm.password.length > 128) {
+    return "注册失败：密码长度需要在 6 到 128 个字符之间。";
+  }
+  return "";
+}
+
 async function runTask(task: () => Promise<void>, successMessage?: string) {
   loading.value = true;
   message.value = "";
@@ -149,6 +166,11 @@ async function boot() {
 }
 
 async function submitAuth() {
+  const validationMessage = validateAuthForm();
+  if (validationMessage) {
+    message.value = validationMessage;
+    return;
+  }
   await runTask(async () => {
     const response =
       authMode.value === "login"
@@ -319,11 +341,27 @@ boot();
         </label>
         <label v-if="authMode === 'register'" class="field">
           <span>用户名</span>
-          <input v-model="authForm.username" type="text" autocomplete="username" />
+          <input
+            v-model.trim="authForm.username"
+            type="text"
+            autocomplete="username"
+            minlength="2"
+            maxlength="64"
+            placeholder="例如 test01"
+            required
+          />
+          <small class="field-help">注册必填，2 到 64 个字符。</small>
         </label>
         <label class="field">
           <span>邮箱</span>
-          <input v-model="authForm.email" type="email" autocomplete="email" required />
+          <input
+            v-model.trim="authForm.email"
+            type="email"
+            autocomplete="email"
+            placeholder="例如 test01@example.com"
+            required
+          />
+          <small class="field-help">必须是合法邮箱格式。</small>
         </label>
         <label class="field">
           <span>密码</span>
@@ -331,8 +369,12 @@ boot();
             v-model="authForm.password"
             type="password"
             autocomplete="current-password"
+            minlength="6"
+            maxlength="128"
+            placeholder="至少 6 位"
             required
           />
+          <small class="field-help">长度需要在 6 到 128 个字符之间。</small>
         </label>
         <button class="button button-primary" type="submit" :disabled="loading">
           <ShieldCheck class="icon-inline" />
