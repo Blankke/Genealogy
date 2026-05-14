@@ -1,0 +1,15 @@
+﻿PostgreSQL 16.13 > Query 2: recursive ancestor query for member 3590
+
+
+depth parent_roles path_count parent_role id   genealogy_id name gender birth_date death_date
+----- ------------ ---------- ----------- --   ------------ ---- ------ ---------- ----------
+1     {father}     1          father      2783 1            陈明恒  male   1268-10-06 1356-10-06
+1     {mother}     1          mother      2848 1            陈明远  female 1269-09-17 1351-09-17
+2     {mother}     1          mother      234  1            陈思清  female 1245-05-18 1318-05-18
+2     {father}     1          father      1013 1            陈思修  male   1242-04-02 1301-04-02
+2     {mother}     1          mother      1218 1            陈思承  female 1243-11-12 1310-11-12
+2     {father}     1          father      1731 1            陈思雅  male   1246-01-12 1312-01-12
+3     {father}     4          father      1    1            陈文文  male   1213-11-18 1284-11-18
+3     {mother}     4          mother      2    1            陈文思  female 1216-01-04 1273-01-04
+
+Total rows: 8

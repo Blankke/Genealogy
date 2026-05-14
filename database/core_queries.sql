@@ -3,7 +3,7 @@
 
 -- 1. 基本查询：给定成员 ID，查询其配偶及所有子女。
 WITH target AS (
-    SELECT :member_id::BIGINT AS member_id
+    SELECT CAST(:member_id AS BIGINT) AS member_id
 ),
 spouses AS (
     SELECT
@@ -26,16 +26,16 @@ FROM (
 JOIN members mem ON mem.id = r.related_member_id
 ORDER BY r.relation_type, mem.birth_date NULLS LAST, mem.id;
 
--- 2. 递归查询：输入成员 A 的 ID，输出其所有历代祖先。
+-- 2. 递归查询：输入成员 A 的 ID，输出其所有历代祖先（按祖先成员去重，并保留最短上溯信息）。
 WITH RECURSIVE ancestors AS (
     SELECT
         pcr.parent_id AS member_id,
         pcr.child_id,
         pcr.parent_role,
         1 AS depth,
-        ARRAY[pcr.child_id, pcr.parent_id] AS path
+        ARRAY[CAST(pcr.child_id AS BIGINT), CAST(pcr.parent_id AS BIGINT)] AS path
     FROM parent_child_relations pcr
-    WHERE pcr.child_id = :member_id::BIGINT
+    WHERE pcr.child_id = CAST(:member_id AS BIGINT)
 
     UNION ALL
 
@@ -48,11 +48,32 @@ WITH RECURSIVE ancestors AS (
     FROM parent_child_relations pcr
     JOIN ancestors ON ancestors.member_id = pcr.child_id
     WHERE NOT pcr.parent_id = ANY(ancestors.path)
+),
+minimum_depth AS (
+    SELECT member_id, MIN(depth) AS depth
+    FROM ancestors
+    GROUP BY member_id
+),
+summarized AS (
+    SELECT
+        ancestors.member_id,
+        minimum_depth.depth,
+        ARRAY_AGG(DISTINCT ancestors.parent_role ORDER BY ancestors.parent_role)
+            FILTER (WHERE ancestors.depth = minimum_depth.depth) AS parent_roles,
+        COUNT(*) FILTER (WHERE ancestors.depth = minimum_depth.depth) AS path_count
+    FROM ancestors
+    JOIN minimum_depth ON minimum_depth.member_id = ancestors.member_id
+    GROUP BY ancestors.member_id, minimum_depth.depth
 )
-SELECT ancestors.depth, ancestors.parent_role, members.*
-FROM ancestors
-JOIN members ON members.id = ancestors.member_id
-ORDER BY ancestors.depth, members.id;
+SELECT
+    summarized.depth,
+    summarized.parent_roles,
+    summarized.path_count,
+    summarized.parent_roles[1] AS parent_role,
+    members.*
+FROM summarized
+JOIN members ON members.id = summarized.member_id
+ORDER BY summarized.depth, members.id;
 
 -- 3. 统计分析：统计某个家族中平均寿命最长的一代人。
 SELECT
@@ -60,7 +81,7 @@ SELECT
     ROUND(AVG(EXTRACT(YEAR FROM age(death_date, birth_date)))::NUMERIC, 2) AS average_lifespan_years,
     COUNT(*) AS sample_count
 FROM members
-WHERE genealogy_id = :genealogy_id::BIGINT
+WHERE genealogy_id = CAST(:genealogy_id AS BIGINT)
   AND birth_date IS NOT NULL
   AND death_date IS NOT NULL
 GROUP BY generation_index
@@ -87,7 +108,7 @@ WITH generation_average AS (
         generation_index,
         AVG(EXTRACT(YEAR FROM birth_date)) AS average_birth_year
     FROM members
-    WHERE genealogy_id = :genealogy_id::BIGINT
+    WHERE genealogy_id = CAST(:genealogy_id AS BIGINT)
       AND birth_date IS NOT NULL
     GROUP BY genealogy_id, generation_index
 )

@@ -1,13 +1,17 @@
 import type {
   AdminDashboardRead,
   AncestorRead,
+  CommonAncestorRead,
   DashboardRead,
   FamilyRead,
   GenealogyRead,
+  MemberListRead,
   MemberRead,
   RelationshipPathRead,
+  SqlQueryDefinitionRead,
+  SqlQueryResultRead,
   TokenResponse,
-  TreeNode,
+  TreePageRead,
   UserRead,
 } from "./types";
 
@@ -81,14 +85,40 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     dashboard: (genealogyId: number) =>
       request<DashboardRead>(`/genealogies/${genealogyId}/dashboard`),
-    listMembers: (genealogyId: number, search: string) =>
-      request<MemberRead[]>(
-        `/genealogies/${genealogyId}/members?search=${encodeURIComponent(search)}`,
-      ),
+    listSqlQueries: (genealogyId: number) =>
+      request<SqlQueryDefinitionRead[]>(`/genealogies/${genealogyId}/sql-queries`),
+    runSqlQuery: (
+      genealogyId: number,
+      payload: { query_key: string; member_id?: number },
+    ) =>
+      request<SqlQueryResultRead>(`/genealogies/${genealogyId}/sql-queries/run`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    listMembers: (
+      genealogyId: number,
+      options: { search: string; limit: number; offset: number },
+    ) => {
+      const params = new URLSearchParams({
+        search: options.search,
+        limit: String(options.limit),
+        offset: String(options.offset),
+      });
+      return request<MemberListRead>(`/genealogies/${genealogyId}/members?${params.toString()}`);
+    },
     createMember: (genealogyId: number, payload: Record<string, unknown>) =>
       request<MemberRead>(`/genealogies/${genealogyId}/members`, {
         method: "POST",
         body: JSON.stringify(payload),
+      }),
+    updateMember: (memberId: number, payload: Record<string, unknown>) =>
+      request<MemberRead>(`/members/${memberId}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }),
+    deleteMember: (memberId: number) =>
+      request<void>(`/members/${memberId}`, {
+        method: "DELETE",
       }),
     createParentChild: (genealogyId: number, payload: Record<string, unknown>) =>
       request<{ id: number }>(`/genealogies/${genealogyId}/relations/parent-child`, {
@@ -103,12 +133,21 @@ export function createApiClient(options: ApiClientOptions) {
     family: (memberId: number) => request<FamilyRead>(`/members/${memberId}/family`),
     ancestors: (memberId: number) =>
       request<AncestorRead[]>(`/members/${memberId}/ancestors`),
-    tree: (genealogyId: number, rootMemberId: string, maxDepth: number) => {
-      const params = new URLSearchParams({ max_depth: String(maxDepth) });
+    commonAncestors: (genealogyId: number, firstMemberId: string, secondMemberId: string) => {
+      const params = new URLSearchParams({
+        first_member_id: firstMemberId,
+        second_member_id: secondMemberId,
+      });
+      return request<CommonAncestorRead[]>(
+        `/genealogies/${genealogyId}/common-ancestors?${params.toString()}`,
+      );
+    },
+    tree: (genealogyId: number, rootMemberId: string, maxDepth: number, page: number) => {
+      const params = new URLSearchParams({ max_depth: String(maxDepth), page: String(page) });
       if (rootMemberId) {
         params.set("root_member_id", rootMemberId);
       }
-      return request<TreeNode[]>(`/genealogies/${genealogyId}/tree?${params.toString()}`);
+      return request<TreePageRead>(`/genealogies/${genealogyId}/tree?${params.toString()}`);
     },
     relationshipPath: (genealogyId: number, sourceMemberId: string, targetMemberId: string) => {
       const params = new URLSearchParams({

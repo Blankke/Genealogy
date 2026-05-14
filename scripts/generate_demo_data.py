@@ -4,11 +4,12 @@
 使用示例：
   python scripts/generate_demo_data.py --output data/generated
   python scripts/generate_demo_data.py --output data/generated --seed 20260507
+  python scripts/generate_demo_data.py --output data/generated_small_200 --family-sizes 200
 
 说明：
   - 默认生成 10 个族谱、105000 名成员，其中第 1 个族谱 52000 人。
-  - 每个族谱默认生成 30 代，成员至少通过亲子或婚姻关系连接到另一名成员。
-  - 输出 CSV 不建议提交 Git，仓库已通过 .gitignore 忽略 data/generated/。
+  - 默认生成 30 代，每一代至少保留一对男女成员，避免断代。
+  - 输出目录会生成 users、genealogies、members、parent_child_relations、marriages 等导入所需 CSV。
 """
 
 from __future__ import annotations
@@ -27,22 +28,23 @@ password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SURNAMES = ["陈", "林", "王", "李", "张", "刘", "赵", "黄", "周", "吴"]
 NAME_PARTS = [
+    "安",
     "承",
-    "文",
-    "思",
-    "明",
     "德",
+    "明",
+    "文",
     "修",
     "远",
-    "安",
+    "嘉",
     "宁",
     "雅",
     "清",
-    "恒",
-    "嘉",
+    "思",
     "立",
+    "恒",
 ]
 DEFAULT_FAMILY_SIZES = [52000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 5000]
+DEFAULT_GENERATION_COUNT = 30
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,17 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="生成族谱管理系统演示 CSV 数据")
     parser.add_argument("--output", default="data/generated", help="CSV 输出目录")
     parser.add_argument("--seed", type=int, default=20260507, help="随机种子")
+    parser.add_argument(
+        "--family-sizes",
+        default=",".join(str(size) for size in DEFAULT_FAMILY_SIZES),
+        help="族谱人数列表，使用逗号分隔，例如 200 或 52000,6000,6000",
+    )
+    parser.add_argument(
+        "--generation-count",
+        type=int,
+        default=DEFAULT_GENERATION_COUNT,
+        help="每个族谱的代数，默认 30",
+    )
     return parser.parse_args()
 
 
@@ -71,6 +84,43 @@ def write_csv(path: Path, headers: list[str], rows: list[dict[str, object]]) -> 
 
 def iso_now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def parse_family_sizes(raw_value: str) -> list[int]:
+    """解析命令行中的族谱人数列表。"""
+
+    family_sizes: list[int] = []
+    for item in raw_value.split(","):
+        stripped_item = item.strip()
+        if not stripped_item:
+            continue
+
+        family_size = int(stripped_item)
+        if family_size < 2:
+            raise ValueError("每个族谱的人数至少为 2，才能生成首代配偶关系")
+        family_sizes.append(family_size)
+
+    if not family_sizes:
+        raise ValueError("至少需要提供一个有效的族谱人数")
+    return family_sizes
+
+
+def generation_sizes(total_members: int, generation_count: int) -> list[int]:
+    """按代际平均分配成员，并保证每代至少 2 人。"""
+
+    minimum_members = generation_count * 2
+    if total_members < minimum_members:
+        raise ValueError(
+            f"总人数 {total_members} 不足以支撑 {generation_count} 代。"
+            f"当前规则要求至少 {minimum_members} 人。"
+        )
+
+    sizes = [2] * generation_count
+    remaining = total_members - minimum_members
+    for index in range(remaining):
+        # 首代固定保留 2 人，剩余人数从第二代开始均匀分摊。
+        sizes[1 + (index % (generation_count - 1))] += 1
+    return sizes
 
 
 def make_name(surname: str, generation_index: int, member_id: int) -> str:
@@ -90,16 +140,6 @@ def make_death_date(birth: date, rng: random.Random) -> str:
     if death_year >= 2026:
         return ""
     return date(death_year, birth.month, birth.day).isoformat()
-
-
-def generation_sizes(total_members: int, generation_count: int) -> list[int]:
-    sizes = [2]
-    remaining = total_members - 2
-    base = remaining // (generation_count - 1)
-    extra = remaining % (generation_count - 1)
-    for generation_offset in range(generation_count - 1):
-        sizes.append(base + (1 if generation_offset < extra else 0))
-    return sizes
 
 
 def generate_users() -> list[dict[str, object]]:
@@ -130,7 +170,11 @@ def generate_users() -> list[dict[str, object]]:
     return users
 
 
-def generate_all_data(rng: random.Random) -> dict[str, list[dict[str, object]]]:
+def generate_all_data(
+    rng: random.Random,
+    family_sizes: list[int],
+    generation_count: int,
+) -> dict[str, list[dict[str, object]]]:
     users = generate_users()
     genealogies: list[dict[str, object]] = []
     collaborators: list[dict[str, object]] = []
@@ -144,10 +188,8 @@ def generate_all_data(rng: random.Random) -> dict[str, list[dict[str, object]]]:
     collaborator_id = 1
     now = iso_now()
 
-    for genealogy_id, family_size in enumerate(
-        tqdm(DEFAULT_FAMILY_SIZES, desc="生成族谱"), start=1
-    ):
-        surname = SURNAMES[genealogy_id - 1]
+    for genealogy_id, family_size in enumerate(tqdm(family_sizes, desc="生成族谱"), start=1):
+        surname = SURNAMES[(genealogy_id - 1) % len(SURNAMES)]
         owner_user_id = ((genealogy_id - 1) % len(users)) + 1
         genealogies.append(
             {
@@ -174,10 +216,12 @@ def generate_all_data(rng: random.Random) -> dict[str, list[dict[str, object]]]:
 
         previous_generation: list[MemberSeed] = []
         start_year = 1210 + genealogy_id * 6
+        generation_member_sizes = generation_sizes(family_size, generation_count)
+
         for generation_index, generation_size in enumerate(
             tqdm(
-                generation_sizes(family_size, 30),
-                desc=f"{surname}氏生成 30 代",
+                generation_member_sizes,
+                desc=f"{surname}氏生成 {generation_count} 代",
                 leave=False,
             ),
             start=1,
@@ -204,7 +248,10 @@ def generate_all_data(rng: random.Random) -> dict[str, list[dict[str, object]]]:
                         "birth_date": birth.isoformat(),
                         "death_date": make_death_date(birth, rng),
                         "generation_index": generation_index,
-                        "biography": f"{surname}氏第 {generation_index} 代成员，演示数据编号 {member_id}。",
+                        "biography": (
+                            f"{surname}氏第 {generation_index} 代成员，"
+                            f"演示数据编号 {member_id}。"
+                        ),
                         "created_at": now,
                     }
                 )
@@ -225,14 +272,9 @@ def generate_all_data(rng: random.Random) -> dict[str, list[dict[str, object]]]:
                 )
                 marriage_id += 1
             else:
-                fathers = [
-                    member for member in previous_generation if member.gender == "male"
-                ]
-                mothers = [
-                    member
-                    for member in previous_generation
-                    if member.gender == "female"
-                ]
+                fathers = [member for member in previous_generation if member.gender == "male"]
+                mothers = [member for member in previous_generation if member.gender == "female"]
+
                 for child in current_generation:
                     father = rng.choice(fathers)
                     mother = rng.choice(mothers)
@@ -249,12 +291,8 @@ def generate_all_data(rng: random.Random) -> dict[str, list[dict[str, object]]]:
                         )
                         relation_id += 1
 
-                males = [
-                    member for member in current_generation if member.gender == "male"
-                ]
-                females = [
-                    member for member in current_generation if member.gender == "female"
-                ]
+                males = [member for member in current_generation if member.gender == "male"]
+                females = [member for member in current_generation if member.gender == "female"]
                 pair_count = min(len(males), len(females)) // 3
                 for pair_index in range(pair_count):
                     marriages.append(
@@ -287,7 +325,8 @@ def main() -> None:
     args = parse_args()
     rng = random.Random(args.seed)
     output = Path(args.output)
-    data = generate_all_data(rng)
+    family_sizes = parse_family_sizes(args.family_sizes)
+    data = generate_all_data(rng, family_sizes, args.generation_count)
 
     headers = {
         "users": ["id", "username", "email", "password_hash", "is_admin", "created_at"],

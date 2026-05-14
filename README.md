@@ -36,17 +36,16 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 ## 后端启动
 
-所有 Python 命令都应在 `backend/.venv` 中运行。
+所有 Python 命令都应使用 `backend/.venv` 中的解释器执行。若当前 PowerShell 禁止执行 `Activate.ps1`，可直接调用 `python.exe`，这样更稳定、也更容易复现。
 
 ```powershell
 cd backend
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -c "import sys; print(sys.executable)"
-python -m pip install -r requirements.txt
+python -m venv .venv
+.\.venv\Scripts\python.exe -c "import sys; print(sys.executable)"
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 Copy-Item .env.example .env
-alembic upgrade head
-uvicorn app.main:app --reload
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
 默认 API 地址：`http://localhost:8000`
@@ -63,11 +62,11 @@ npm run dev
 
 ## 生成与导入演示数据
 
-先激活 `backend/.venv`，再回到仓库根目录执行：
+先准备好 `backend/.venv`，再回到仓库根目录执行：
 
 ```powershell
-python scripts/generate_demo_data.py --output data/generated
-python scripts/validate_generated_data.py --input data/generated
+.\backend\.venv\Scripts\python.exe scripts/generate_demo_data.py --output data/generated
+.\backend\.venv\Scripts\python.exe scripts/validate_generated_data.py --input data/generated
 .\scripts\import_csv.ps1 -Database genealogy -User genealogy_app -DataDir data\generated -Reset
 ```
 
@@ -112,10 +111,9 @@ python scripts/validate_generated_data.py --input data/generated
 
 ```powershell
 cd backend
-.\.venv\Scripts\Activate.ps1
-python -c "import sys; print(sys.executable)"
-python -m ruff check app tests ..\scripts
-python -m pytest tests
+.\.venv\Scripts\python.exe -c "import sys; print(sys.executable)"
+.\.venv\Scripts\python.exe -m ruff check app tests ..\scripts
+.\.venv\Scripts\python.exe -m pytest tests
 ```
 
 前端：

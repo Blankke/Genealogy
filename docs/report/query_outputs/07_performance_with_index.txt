@@ -1,0 +1,33 @@
+﻿                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=502.12..720.91 rows=828 width=103) (actual time=1.626..2.324 rows=828 loops=1)
+   Hash Cond: (great_grandchild.id = p3.child_id)
+   Buffers: shared hit=1773 read=2
+   ->  Seq Scan on members great_grandchild  (cost=0.00..188.01 rows=6001 width=103) (actual time=0.004..0.416 rows=6001 loops=1)
+         Buffers: shared hit=128
+   ->  Hash  (cost=491.77..491.77 rows=828 width=8) (actual time=1.575..1.576 rows=828 loops=1)
+         Buckets: 1024  Batches: 1  Memory Usage: 41kB
+         Buffers: shared hit=1645 read=2
+         ->  Nested Loop  (cost=17.82..491.77 rows=828 width=8) (actual time=0.101..1.525 rows=828 loops=1)
+               Buffers: shared hit=1645 read=2
+               ->  Hash Join  (cost=17.53..329.61 rows=414 width=8) (actual time=0.088..1.163 rows=414 loops=1)
+                     Hash Cond: (p2.parent_id = p1.child_id)
+                     Buffers: shared hit=137
+                     ->  Seq Scan on parent_child_relations p2  (cost=0.00..247.96 rows=11996 width=16) (actual time=0.002..0.598 rows=11996 loops=1)
+                           Buffers: shared hit=128
+                     ->  Hash  (cost=14.95..14.95 rows=207 width=8) (actual time=0.049..0.049 rows=207 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 17kB
+                           Buffers: shared hit=9
+                           ->  Index Scan using idx_parent_child_parent on parent_child_relations p1  (cost=0.29..14.95 rows=207 width=8) (actual time=0.012..0.033 rows=207 loops=1)
+                                 Index Cond: (parent_id = 52001)
+                                 Buffers: shared hit=9
+               ->  Index Scan using idx_parent_child_parent on parent_child_relations p3  (cost=0.29..0.37 rows=2 width=16) (actual time=0.000..0.001 rows=2 loops=414)
+                     Index Cond: (parent_id = p2.child_id)
+                     Buffers: shared hit=1508 read=2
+ Planning:
+   Buffers: shared hit=233 read=5
+ Planning Time: 2.078 ms
+ Execution Time: 2.414 ms
+(28 rows)
+
+

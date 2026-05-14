@@ -19,5 +19,8 @@ def test_openapi_contains_core_routes() -> None:
     assert "/admin/dashboard" in paths
     assert "/genealogies" in paths
     assert "/genealogies/{genealogy_id}/members" in paths
+    assert "/genealogies/{genealogy_id}/sql-queries" in paths
+    assert "/genealogies/{genealogy_id}/sql-queries/run" in paths
     assert "/members/{member_id}/ancestors" in paths
+    assert "/genealogies/{genealogy_id}/common-ancestors" in paths
     assert "/genealogies/{genealogy_id}/relationship-path" in paths

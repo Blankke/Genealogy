@@ -1,0 +1,37 @@
+﻿                                                                         QUERY PLAN                                                                          
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=909.37..1128.16 rows=828 width=103) (actual time=2.611..3.379 rows=828 loops=1)
+   Hash Cond: (great_grandchild.id = p3.child_id)
+   Buffers: shared hit=512
+   ->  Seq Scan on members great_grandchild  (cost=0.00..188.01 rows=6001 width=103) (actual time=0.005..0.534 rows=6001 loops=1)
+         Buffers: shared hit=128
+   ->  Hash  (cost=899.02..899.02 rows=828 width=8) (actual time=2.546..2.548 rows=828 loops=1)
+         Buckets: 1024  Batches: 1  Memory Usage: 41kB
+         Buffers: shared hit=384
+         ->  Hash Join  (cost=597.79..899.02 rows=828 width=8) (actual time=1.705..2.500 rows=828 loops=1)
+               Hash Cond: (p3.parent_id = p2.child_id)
+               Buffers: shared hit=384
+               ->  Seq Scan on parent_child_relations p3  (cost=0.00..247.96 rows=11996 width=16) (actual time=0.008..0.381 rows=11996 loops=1)
+                     Buffers: shared hit=128
+               ->  Hash  (cost=592.62..592.62 rows=414 width=8) (actual time=1.642..1.643 rows=414 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 25kB
+                     Buffers: shared hit=256
+                     ->  Hash Join  (cost=280.54..592.62 rows=414 width=8) (actual time=0.819..1.619 rows=414 loops=1)
+                           Hash Cond: (p2.parent_id = p1.child_id)
+                           Buffers: shared hit=256
+                           ->  Seq Scan on parent_child_relations p2  (cost=0.00..247.96 rows=11996 width=16) (actual time=0.002..0.368 rows=11996 loops=1)
+                                 Buffers: shared hit=128
+                           ->  Hash  (cost=277.95..277.95 rows=207 width=8) (actual time=0.782..0.782 rows=207 loops=1)
+                                 Buckets: 1024  Batches: 1  Memory Usage: 17kB
+                                 Buffers: shared hit=128
+                                 ->  Seq Scan on parent_child_relations p1  (cost=0.00..277.95 rows=207 width=8) (actual time=0.005..0.768 rows=207 loops=1)
+                                       Filter: (parent_id = 52001)
+                                       Rows Removed by Filter: 11789
+                                       Buffers: shared hit=128
+ Planning:
+   Buffers: shared hit=190 read=4
+ Planning Time: 0.724 ms
+ Execution Time: 3.452 ms
+(32 rows)
+
+

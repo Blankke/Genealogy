@@ -1,0 +1,10 @@
+﻿PostgreSQL 16.13 > Query 1: spouse and children for member 6
+
+
+relation_type id   genealogy_id name gender birth_date death_date generation_index biography              created_at                   
+------------- --   ------------ ---- ------ ---------- ---------- ---------------- ---------              ----------                   
+child         2128 1            陈明承  female 1270-01-12 1347-01-12 3                陈氏第 3 代成员，演示数据编号 2128。 2026-05-07 20:48:00.264363+08
+child         2738 1            陈明宁  female 1271-04-04 1341-04-04 3                陈氏第 3 代成员，演示数据编号 2738。 2026-05-07 20:48:00.264363+08
+spouse        5    1            陈思修  male   1242-03-12 1315-03-12 2                陈氏第 2 代成员，演示数据编号 5。    2026-05-07 20:48:00.264363+08
+
+Total rows: 3

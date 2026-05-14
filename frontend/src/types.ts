@@ -32,6 +32,13 @@ export interface MemberRead {
   created_at: string;
 }
 
+export interface MemberListRead {
+  items: MemberRead[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface DashboardRead {
   genealogy_id: number;
   total_members: number;
@@ -60,13 +67,47 @@ export interface FamilyRead {
 export interface AncestorRead {
   depth: number;
   parent_role: string;
+  parent_roles: string[];
+  path_count: number;
   member: MemberRead;
+}
+
+export interface CommonAncestorRead {
+  first_depth: number;
+  second_depth: number;
+  member: MemberRead;
+}
+
+export interface SqlQueryDefinitionRead {
+  key: string;
+  title: string;
+  description: string;
+  sql: string;
+  required_params: string[];
+}
+
+export interface SqlQueryResultRead {
+  key: string;
+  title: string;
+  description: string;
+  sql: string;
+  columns: string[];
+  rows: Record<string, unknown>[];
 }
 
 export interface TreeNode {
   member: MemberRead;
   depth: number;
   children: TreeNode[];
+}
+
+export interface TreePageRead {
+  items: TreeNode[];
+  page: number;
+  page_size: number;
+  page_nodes: number;
+  total_nodes: number;
+  total_pages: number;
 }
 
 export interface RelationshipPathRead {

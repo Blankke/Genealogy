@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -89,6 +90,13 @@ class MemberRead(BaseModel):
     created_at: datetime
 
 
+class MemberListRead(BaseModel):
+    items: list[MemberRead]
+    total: int
+    limit: int
+    offset: int
+
+
 class ParentChildCreate(BaseModel):
     parent_id: int
     child_id: int
@@ -131,6 +139,14 @@ class FamilyRead(BaseModel):
 class AncestorRead(BaseModel):
     depth: int
     parent_role: str
+    parent_roles: list[str] = Field(default_factory=list)
+    path_count: int = 1
+    member: MemberRead
+
+
+class CommonAncestorRead(BaseModel):
+    first_depth: int
+    second_depth: int
     member: MemberRead
 
 
@@ -140,8 +156,39 @@ class TreeNode(BaseModel):
     children: list["TreeNode"] = Field(default_factory=list)
 
 
+class TreePageRead(BaseModel):
+    items: list[TreeNode]
+    page: int
+    page_size: int
+    page_nodes: int
+    total_nodes: int
+    total_pages: int
+
+
+class SqlQueryDefinitionRead(BaseModel):
+    key: str
+    title: str
+    description: str
+    sql: str
+    required_params: list[str]
+
+
+class SqlQueryRunRequest(BaseModel):
+    query_key: str
+    member_id: int | None = None
+
+
+class SqlQueryResultRead(BaseModel):
+    key: str
+    title: str
+    description: str
+    sql: str
+    columns: list[str]
+    rows: list[dict[str, Any]]
+
+
 class RelationshipPathRead(BaseModel):
     connected: bool
-    path_members: list[MemberRead] = []
-    relation_steps: list[str] = []
+    path_members: list[MemberRead] = Field(default_factory=list)
+    relation_steps: list[str] = Field(default_factory=list)
     depth: int = 0

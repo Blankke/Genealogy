@@ -1,0 +1,8 @@
+﻿PostgreSQL 16.13 > Query 3: generation with highest average lifespan in genealogy 1
+
+
+generation_index average_lifespan_years sample_count
+---------------- ---------------------- ------------
+17               71.42                  1793
+
+Total rows: 1

@@ -1,0 +1,21 @@
+﻿ database_name |    db_user    |                         db_version                          
+---------------+---------------+-------------------------------------------------------------
+ genealogy     | genealogy_app | PostgreSQL 16.13, compiled by Visual C++ build 1944, 64-bit
+(1 row)
+
+ genealogy_id | member_count 
+--------------+--------------
+            1 |        52000
+            2 |         6001
+            3 |         6000
+            4 |         6000
+            5 |         6000
+            6 |         6000
+            7 |         6000
+            8 |         6000
+            9 |         6000
+           10 |         5000
+           11 |            1
+(11 rows)
+
+

@@ -23,6 +23,8 @@ $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $OutputPath = Join-Path $Root $Output
 $OutputDir = Split-Path $OutputPath
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+$TemporaryOutputPath = Join-Path $env:TEMP ("genealogy_branch_export_{0}.csv" -f [guid]::NewGuid().ToString("N"))
+$OutputPathForPsql = ($TemporaryOutputPath -replace "\\", "/") -replace "'", "''"
 
 function Resolve-Psql {
     $Command = Get-Command psql -ErrorAction SilentlyContinue
@@ -52,25 +54,15 @@ if ($Password) {
 
 $ExportSql = New-TemporaryFile
 try {
-    $Query = @"
-\copy (
-WITH RECURSIVE branch AS (
-    SELECT $RootMemberId::BIGINT AS member_id
-    UNION ALL
-    SELECT pcr.child_id
-    FROM parent_child_relations pcr
-    JOIN branch ON branch.member_id = pcr.parent_id
-)
-SELECT members.*
-FROM members
-JOIN branch ON branch.member_id = members.id
-ORDER BY members.generation_index, members.id
-) TO '$OutputPath' WITH (FORMAT csv, HEADER true)
-"@
+    $Query = "\copy (WITH RECURSIVE root AS (SELECT id AS member_id, genealogy_id FROM members WHERE id = $RootMemberId::BIGINT), branch AS (SELECT member_id, genealogy_id FROM root UNION SELECT pcr.child_id, branch.genealogy_id FROM parent_child_relations pcr JOIN branch ON branch.member_id = pcr.parent_id AND pcr.genealogy_id = branch.genealogy_id) SELECT members.* FROM members JOIN branch ON branch.member_id = members.id AND branch.genealogy_id = members.genealogy_id ORDER BY members.generation_index, members.id) TO '$OutputPathForPsql' WITH (FORMAT csv, HEADER true)"
     Set-Content -Path $ExportSql -Value $Query -Encoding UTF8
     & $Psql -h $DbHost -U $User -d $Database -f $ExportSql
+    Move-Item -LiteralPath $TemporaryOutputPath -Destination $OutputPath -Force
 }
 finally {
     Remove-Item -LiteralPath $ExportSql -Force
+    if (Test-Path -LiteralPath $TemporaryOutputPath) {
+        Remove-Item -LiteralPath $TemporaryOutputPath -Force
+    }
     $env:PGPASSWORD = $PreviousPgPassword
 }
